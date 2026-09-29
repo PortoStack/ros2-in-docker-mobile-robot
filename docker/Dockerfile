@@ -30,6 +30,7 @@ RUN apt-get update -o Acquire::Check-Valid-Until=false && apt-get install -y --n
   ros-humble-xacro \
   ros-humble-joint-state-publisher \
   ros-humble-robot-state-publisher \
+  ros-humble-cyclonedds \
   ros-humble-rmw-cyclonedds-cpp \
   ros-humble-sensor-msgs \
   ros-humble-geometry-msgs \
@@ -50,15 +51,15 @@ RUN git clone https://github.com/YDLIDAR/YDLidar-SDK.git /tmp/YDLidar-SDK && \
   make install && \
   rm -rf /tmp/YDLidar-SDK
 
-# 4. Clone และ Compile micro-ROS Agent
-RUN mkdir -p /tmp/uros_ws/src && \
-  cd /tmp/uros_ws/src && \
+# 4. Clone และ Compile micro-ROS Agent ไว้ที่ /opt/uros_ws
+RUN mkdir -p /opt/uros_ws/src && \
+  cd /opt/uros_ws/src && \
   git clone -b humble https://github.com/micro-ROS/micro-ROS-Agent.git && \
   git clone -b humble https://github.com/micro-ROS/micro_ros_msgs.git && \
-  cd /tmp/uros_ws && \
+  cd /opt/uros_ws && \
   . /opt/ros/humble/setup.sh && \
-  colcon build --merge-install --install-base /opt/ros/humble && \
-  rm -rf /tmp/uros_ws
+  colcon build && \
+  rm -rf /opt/uros_ws/src /opt/uros_ws/build /opt/uros_ws/log
 
 # ตั้งค่า Workspace
 RUN mkdir -p /workspace/src
@@ -83,6 +84,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+RUN echo "if [ -f /opt/uros_ws/install/setup.bash ]; then source /opt/uros_ws/install/setup.bash; fi" >> ~/.bashrc
 RUN echo "if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi" >> ~/.bashrc
 
 CMD ["bash"]
@@ -94,9 +96,10 @@ FROM base AS production
 
 COPY ./workspace/src /workspace/src
 
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && source /opt/uros_ws/install/setup.bash && colcon build --symlink-install"
 
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+RUN echo "source /opt/uros_ws/install/setup.bash" >> ~/.bashrc
 RUN echo "source /workspace/install/setup.bash" >> ~/.bashrc
 
 CMD ["ros2", "launch", "medbot_bringup", "robot.launch.py"]
