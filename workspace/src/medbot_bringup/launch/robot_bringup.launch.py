@@ -35,6 +35,7 @@ def generate_launch_description():
 
     serial_port = LaunchConfiguration('serial_port')
     baudrate = LaunchConfiguration('baudrate')
+    lidar_port = LaunchConfiguration('lidar_port')
     use_foxglove = LaunchConfiguration('use_foxglove')
 
     # Process URDF
@@ -90,7 +91,10 @@ def generate_launch_description():
         package='ydlidar_ros2_driver',
         executable='ydlidar_ros2_driver_node',
         name='ydlidar_ros2_driver_node',
-        parameters=[os.path.join(pkg_bringup, 'config', 'ydlidar_params.yaml')],
+        parameters=[
+            os.path.join(pkg_bringup, 'config', 'ydlidar_params.yaml'),
+            {'port': lidar_port}
+        ],
         output='screen'
     )
 

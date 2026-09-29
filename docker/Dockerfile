@@ -30,7 +30,6 @@ RUN apt-get update -o Acquire::Check-Valid-Until=false && apt-get install -y --n
   ros-humble-xacro \
   ros-humble-joint-state-publisher \
   ros-humble-robot-state-publisher \
-  ros-humble-micro-ros-agent \
   ros-humble-rmw-cyclonedds-cpp \
   ros-humble-sensor-msgs \
   ros-humble-geometry-msgs \
@@ -50,6 +49,16 @@ RUN git clone https://github.com/YDLIDAR/YDLidar-SDK.git /tmp/YDLidar-SDK && \
   make -j$(nproc) && \
   make install && \
   rm -rf /tmp/YDLidar-SDK
+
+# 4. Clone และ Compile micro-ROS Agent
+RUN mkdir -p /tmp/uros_ws/src && \
+  cd /tmp/uros_ws/src && \
+  git clone -b humble https://github.com/micro-ROS/micro-ROS-Agent.git && \
+  git clone -b humble https://github.com/micro-ROS/micro_ros_msgs.git && \
+  cd /tmp/uros_ws && \
+  . /opt/ros/humble/setup.sh && \
+  colcon build --merge-install --install-base /opt/ros/humble && \
+  rm -rf /tmp/uros_ws
 
 # ตั้งค่า Workspace
 RUN mkdir -p /workspace/src
