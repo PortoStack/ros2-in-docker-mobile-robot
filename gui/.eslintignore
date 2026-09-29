@@ -1,0 +1,15 @@
+# ESLint Ignore Rules
+
+# Dependencies & Build Output
+node_modules/
+.next/
+out/
+build/
+coverage/
+
+# Public & Config Files
+public/
+next-env.d.ts
+*.config.mjs
+*.config.js
+*.config.ts

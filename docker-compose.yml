@@ -1,0 +1,52 @@
+name: medbot
+
+services:
+  robot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: ${DOCKER_TARGET:-development}
+    image: medbot-robot:latest
+    container_name: medbot-robot
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    devices:
+      - /dev:/dev
+    volumes:
+      - ./workspace/src:/workspace/src
+      - build_cache:/workspace/build
+      - install_cache:/workspace/install
+      - log_cache:/workspace/log
+      - /dev:/dev
+    ports:
+      - "8765:8765" # Foxglove Studio WebSocket Bridge
+    environment:
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
+      - ROS_LOG_DIR=/root/.ros/log
+    command: >
+      bash -c "ros2 launch medbot_bringup robot.launch.py"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  gui:
+    build:
+      context: ./gui
+      dockerfile: Dockerfile
+    image: medbot-gui:latest
+    container_name: medbot-gui
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    profiles:
+      - full
+      - gui
+
+volumes:
+  build_cache:
+  install_cache:
+  log_cache:

@@ -1,0 +1,16 @@
+twist_mux:
+  ros__parameters:
+    topics:
+      joystick:
+        topic: /cmd_vel_joy
+        timeout: 0.5
+        priority: 100     # Highest Priority (Emergency Override & Manual Mapping)
+      navigation:
+        topic: /cmd_vel_nav
+        timeout: 0.5
+        priority: 50      # Nav2 Autonomous Commands
+    locks:
+      e_stop:
+        topic: /e_stop
+        timeout: 0.0
+        priority: 255

@@ -1,0 +1,31 @@
+{
+  "name": "Medbot ROS2 Dev",
+  "dockerComposeFile": "../docker-compose.dev.yml",
+  "service": "core",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        }
+      },
+      "extensions": [
+        "ms-iot.vscode-ros",
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "twxs.cmake",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "charliermarsh.ruff"
+      ]
+    }
+  },
+  "remoteUser": "root"
+}

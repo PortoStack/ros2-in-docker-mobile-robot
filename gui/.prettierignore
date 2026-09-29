@@ -1,0 +1,22 @@
+# Build outputs & dependencies
+.next/
+out/
+build/
+node_modules/
+coverage/
+
+# Package manager artifacts
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Public assets & static binaries
+public/
+
+# Lock files & environment files
+.env
+.env.*
+*.log
+
+# System files
+.DS_Store
