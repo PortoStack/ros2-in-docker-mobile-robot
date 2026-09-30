@@ -1,13 +1,13 @@
 teleop_twist_joy_node:
   ros__parameters:
     axis_linear:
-      x: 1                # Left stick vertical
+      x: 4                # Right stick vertical (ขึ้น-ลง)
     scale_linear:
       x: 0.5              # Max speed 0.5 m/s
     scale_linear_turbo:
       x: 1.0              # Turbo speed 1.0 m/s
     axis_angular:
-      yaw: 3              # Right stick horizontal (or 0 for left stick horizontal)
+      yaw: 3              # Right stick horizontal (ซ้าย-ขวา)
     scale_angular:
       yaw: 1.2            # Max turn rate 1.2 rad/s
     enable_button: 4      # LB (Left Bumper) - Deadman switch

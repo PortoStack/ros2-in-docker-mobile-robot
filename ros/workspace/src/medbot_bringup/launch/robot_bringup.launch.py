@@ -56,7 +56,7 @@ def generate_launch_description():
         package='micro_ros_agent',
         executable='micro_ros_agent',
         name='micro_ros_agent',
-        arguments=['serial', '--dev', serial_port, '-b', baudrate],
+        arguments=['serial', '--dev', serial_port, '-b', baudrate, '-v4'],
         output='screen'
     )
 
