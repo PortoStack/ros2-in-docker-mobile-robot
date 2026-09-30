@@ -1,7 +1,7 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -52,11 +52,8 @@ def generate_launch_description():
     )
 
     # micro-ROS Agent (Communication with ESP32)
-    micro_ros_agent_node = Node(
-        package='micro_ros_agent',
-        executable='micro_ros_agent',
-        name='micro_ros_agent',
-        arguments=['serial', '--dev', serial_port, '-b', baudrate, '-v4'],
+    micro_ros_agent_node = ExecuteProcess(
+        cmd=['ros2', 'run', 'micro_ros_agent', 'micro_ros_agent', 'serial', '--dev', serial_port, '-b', baudrate, '-v4'],
         output='screen'
     )
 
