@@ -71,7 +71,7 @@ def generate_launch_description():
     # Teleop Twist Joy (publishes to /cmd_vel_joy)
     teleop_twist_joy_node = Node(
         package='teleop_twist_joy',
-        executable='teleop_twist_joy_node',
+        executable='teleop_node',
         name='teleop_twist_joy_node',
         parameters=[os.path.join(pkg_bringup, 'config', 'joy_params.yaml')],
         remappings=[('/cmd_vel', '/cmd_vel_joy')]
