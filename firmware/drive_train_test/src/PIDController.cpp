@@ -49,8 +49,15 @@ float PIDController::compute(float target, float measured, float dt) {
     float dTerm = _kd * derivative;
     _lastError = error;
 
+    // Static friction deadband compensation (ensures both motors start simultaneously)
+    float feedForward = 0.0f;
+    if (fabs(target) > 0.01f) {
+        float minStartPWM = 40.0f;
+        feedForward = (target > 0) ? minStartPWM : -minStartPWM;
+    }
+
     // Compute total control output
-    float output = pTerm + iTerm + dTerm;
+    float output = feedForward + pTerm + iTerm + dTerm;
     return constrain(output, _minOutput, _maxOutput);
 }
 

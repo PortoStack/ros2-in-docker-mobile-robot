@@ -214,6 +214,8 @@ void setup() {
     last_control_time = millis();
 }
 
+unsigned long last_ping_time = 0;
+
 void loop() {
     switch (agent_state) {
         case WAITING_AGENT:
@@ -226,16 +228,22 @@ void loop() {
         case AGENT_AVAILABLE:
             if (create_entities()) {
                 agent_state = AGENT_CONNECTED;
+                last_ping_time = millis();
             } else {
                 agent_state = WAITING_AGENT;
             }
             break;
 
         case AGENT_CONNECTED:
-            if (rmw_uros_ping_agent(100, 1) == RMW_RET_OK) {
-                rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10));
-            } else {
-                agent_state = AGENT_DISCONNECTED;
+            // Real-time non-blocking executor spin
+            rclc_executor_spin_some(&executor, RCL_MS_TO_NS(2));
+
+            // Periodic heartbeat check every 2 seconds without blocking loop
+            if (millis() - last_ping_time > 2000) {
+                last_ping_time = millis();
+                if (rmw_uros_ping_agent(50, 1) != RMW_RET_OK) {
+                    agent_state = AGENT_DISCONNECTED;
+                }
             }
             break;
 

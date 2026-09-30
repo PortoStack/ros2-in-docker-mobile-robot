@@ -1,23 +1,25 @@
 ydlidar_ros2_driver_node:
   ros__parameters:
-    port: /dev/ttyUSB1
+    port: /dev/ttyUSB0
     frame_id: laser_frame
     ignore_array: ""
-    baudrate: 128000
-    lidar_type: 1
-    device_type: 0
-    sample_rate: 5
+    baudrate: 128000           # หัวใจสำคัญของ X4 คือ 128000
+    lidar_type: 1              # 1 = TYPE_TRIANGLE
+    device_type: 0             # 0 = SERIAL
+    sample_rate: 5             # 5kHz ตามสเปกในรูป (5000 Hz)
     abnormal_check_count: 4
     fixed_resolution: true
-    reversion: true
-    inverted: true
+    reversion: true            # X4 ส่วนใหญ่ต้องเป็น true
+    inverted: true             # X4 ส่วนใหญ่ต้องเป็น true
     auto_reconnect: true
-    isSingleChannel: false
+    isSingleChannel: true      # X4 เป็น single channel
     intensity: false
-    support_motor_dtr: true
+    intensity_bit: 0
+    support_motor_dtr: false   # สำคัญมาก: X4 ให้ปิด DTR ไม่งั้นจะกวนคำสั่ง Handshake
     angle_max: 180.0
     angle_min: -180.0
-    range_max: 12.0
-    range_min: 0.1
-    frequency: 10.0
+    range_max: 10.0            # 10 เมตรตามสเปก
+    range_min: 0.12           # 0.12 เมตรตามสเปก
+    frequency: 7.0             # 6-12 Hz แนะนำตั้งที่ 7.0
     invalid_range_is_inf: false
+    debug: false
