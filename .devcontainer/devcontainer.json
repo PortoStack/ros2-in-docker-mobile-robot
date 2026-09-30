@@ -1,29 +1,46 @@
 {
-  "name": "Medbot ROS2 Dev",
-  "dockerComposeFile": "../docker-compose.dev.yml",
-  "service": "core",
+  "name": "Medbot ROS 2 Development (Docker)",
+  "dockerComposeFile": [
+    "../docker-compose.yml"
+  ],
+  "service": "robot",
   "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "overrideCommand": false,
   "customizations": {
     "vscode": {
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash",
+        "ros.distro": "humble",
+        "ros.rosCorePath": "/opt/ros/humble",
+        "C_Cpp.default.cppStandard": "c++17",
+        "C_Cpp.default.includePath": [
+          "/opt/ros/humble/include/**",
+          "/opt/uros_ws/install/**",
+          "/workspace/install/**",
+          "/usr/local/include/**",
+          "/usr/include/**"
+        ],
         "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff",
-          "editor.formatOnSave": true,
-          "editor.codeActionsOnSave": {
-            "source.organizeImports": "explicit"
-          }
+          "editor.formatOnSave": true
+        },
+        "[cpp]": {
+          "editor.formatOnSave": true
         }
       },
       "extensions": [
         "ms-iot.vscode-ros",
         "ms-python.python",
+        "ms-python.vscode-pylance",
         "ms-vscode.cpptools",
         "ms-vscode.cmake-tools",
         "twxs.cmake",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml",
+        "foxglove.foxglove-studio",
+        "smilerobotics.urdf-viewer",
         "ms-azuretools.vscode-docker",
-        "eamodio.gitlens",
-        "charliermarsh.ruff"
+        "eamodio.gitlens"
       ]
     }
   },

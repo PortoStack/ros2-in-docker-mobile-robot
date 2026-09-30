@@ -7,6 +7,9 @@ log/
 workspace/build/
 workspace/install/
 workspace/log/
+ros/workspace/build/
+ros/workspace/install/
+ros/workspace/log/
 *.log
 rosbag2_*
 __pycache__/

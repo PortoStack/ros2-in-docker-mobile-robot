@@ -1,12 +1,86 @@
 {
   "folders": [
     {
-      "name": "Firmware",
-      "path": "./firmware"
+      "name": "Project Root",
+      "path": "."
     },
     {
-      "name": "Root",
-      "path": "."
+      "name": "GUI (Next.js + Tauri)",
+      "path": "./gui"
+    },
+    {
+      "name": "Firmware (PlatformIO)",
+      "path": "./firmware/drive_train_test"
+    },
+    {
+      "name": "ROS 2 Stack",
+      "path": "./ros"
     }
-  ]
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/node_modules": false
+    },
+    // --- PlatformIO Settings ---
+    "platformio-ide.activateProjectOnStartup": true,
+    "platformio-ide.autoRebuildAutocompleteCache": true,
+    "platformio-ide.autoCloseSerialMonitor": true,
+
+    // --- Rust & Tauri Settings ---
+    "rust-analyzer.linkedProjects": [
+      "./gui/src-tauri/Cargo.toml"
+    ],
+
+    // --- Web / GUI Formatting & Linting ---
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[rust]": {
+      "editor.defaultFormatter": "rust-lang.rust-analyzer",
+      "editor.formatOnSave": true
+    },
+    "tailwindCSS.includeLanguages": {
+      "typescript": "javascript",
+      "typescriptreact": "javascript"
+    },
+    "eslint.workingDirectories": [
+      "./gui"
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      // PlatformIO / ESP32 Firmware
+      "platformio.platformio-ide",
+      "ms-vscode.cpptools",
+
+      // GUI (Next.js, React, Tailwind, Tauri)
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "rust-lang.rust-analyzer",
+      "tamasfe.even-better-toml",
+
+      // Docker & Dev Containers
+      "ms-vscode-remote.remote-containers",
+      "ms-azuretools.vscode-docker",
+
+      // ROS 2 Tools
+      "ms-iot.vscode-ros"
+    ]
+  }
 }

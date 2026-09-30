@@ -3,8 +3,8 @@ name: medbot
 services:
   robot:
     build:
-      context: .
-      dockerfile: docker/Dockerfile
+      context: ./ros
+      dockerfile: Dockerfile
       target: ${DOCKER_TARGET:-development}
     image: medbot-robot:latest
     container_name: medbot-robot
@@ -14,7 +14,7 @@ services:
     devices:
       - /dev:/dev
     volumes:
-      - ./workspace/src:/workspace/src
+      - ./ros/workspace/src:/workspace/src
       - build_cache:/workspace/build
       - install_cache:/workspace/install
       - log_cache:/workspace/log
