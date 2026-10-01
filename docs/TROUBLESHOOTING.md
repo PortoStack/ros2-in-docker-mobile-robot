@@ -12,10 +12,14 @@
 4. [ปัญหาที่ 4: Launch ไม่พบแพ็กเกจ `ydlidar_ros2_driver`](#4-launch-ไม่พบแพ็กเกจ-ydlidar_ros2_driver)
 5. [ปัญหาที่ 5: ไฟล์ในโฟลเดอร์ `ydlidar_ros2_driver` ไม่เข้า GitHub (Gitlink 160000)](#5-ไฟล์ในโฟลเดอร์-ydlidar_ros2_driver-ไม่เข้า-github-gitlink-160000)
 6. [ปัญหาที่ 6: YDLIDAR Handshake ล้มเหลว (`Error, cannot retrieve Lidar health code -2`)](#6-ydlidar-handshake-ล้มเหลว-error-cannot-retrieve-lidar-health-code--2)
+7. [ปัญหาที่ 7: มอเตอร์หมุนดีเลย์ / ออกตัวไม่พร้อมกัน / มีอาการสะดุด (PID & Feed-Forward)](#7-ปัญหาที่-7-มอเตอร์หมุนดีเลย์--ออกตัวไม่พร้อมกัน--มีอาการสะดุด-pid--feed-forward)
+8. [ปัญหาที่ 8: พอร์ต `/dev/ttyUSB*` สลับตำแหน่งกันเมื่อใช้ชิป CP2102 ทั้งคู่ (USB Port Mapping)](#8-ปัญหาที่-8-พอร์ต-devttyusb-สลับตำแหน่งกันเมื่อใช้ชิป-cp2102-ทั้งคู่-usb-port-mapping)
+9. [ปัญหาที่ 9: เปลี่ยนมาใช้แบตเตอรี่ 12V แล้วอุปกรณ์ USB หลุด/ไม่ทำงาน (`USB disconnect` & Docker Broken Pipe)](#9-ปัญหาที่-9-เปลี่ยนมาใช้แบตเตอรี่-12v-แล้วอุปกรณ์-usb-หลุดไม่ทำงาน-usb-disconnect--docker-broken-pipe)
 
 ---
 
 ## 1. Docker Build ล้มเหลว (Exit Code: 100) จาก `micro-ros-agent`
+
 
 ### ❌ อาการ (Error)
 ```text
@@ -196,3 +200,106 @@ ydlidar_ros2_driver_node:
     range_min: 0.12
     frequency: 7.0
 ```
+
+---
+
+## 7. ปัญหาที่ 7: มอเตอร์หมุนดีเลย์ / ออกตัวไม่พร้อมกัน / มีอาการสะดุด (PID & Feed-Forward)
+
+### ❌ อาการ (Symptoms)
+1. เมื่อโยกก้าน Joypad มีอาการ Delay (ดีเลย์ 1-2 วินาที) ก่อนที่มอเตอร์จะเริ่มหมุน
+2. ล้อซ้ายและขวาออกตัวไม่พร้อมกัน (ข้างหนึ่งเริ่มหมุนก่อน อีกข้างตามมาทีหลัง)
+3. ขณะหมุนด้วยความเร็วต่ำ มอเตอร์มีอาการกระตุกหรือสะบัด
+
+### 🔍 สาเหตุ
+1. **Derivative Noise Spikes ($K_d > 0$):** การคำนวณ Differential $(\Delta \text{Error} / \Delta t)$ จากสัญญาณ Discrete Encoder ที่ความถี่ 50Hz ทำให้เกิดสัญญาณรบกวน (Noise Spikes) รุนแรง กวนสัญญาณ PWM
+2. **แรงเสียดทานสถิตและ Deadband ของชุดเกียร์:** มอเตอร์และชุดทดเกียร์ 60:1 ต้องใช้แรงดัน PWM ขั้นต่ำอย่างน้อย ~30-35 PWM ถึงจะเริ่มชนะแรงเสียดทานสถิต (Static Friction) การใช้ PID ธรรมดาโดยไม่มี Feed-Forward จะต้องรอให้พจน์ Integral ($K_i$) ค่อยๆ สะสมค่า Error จนกว่าจะเกิน Deadband ทำให้เกิดอาการ Lag และข้างที่ฝืดน้อยกว่าจะออกตัวก่อน
+3. **Serial Ping Blocking:** การเรียก `rmw_uros_ping_agent` ใน fast loop ของ ESP32 ไปบล็อก Serial I/O ส่งผลให้การรับคำสั่ง `/cmd_vel` ช้าลง
+
+### 💡 วิธีแก้ไข
+1. **เพิ่ม Feed-Forward + Deadband Compensation** ใน `firmware/drive_train_test/src/PIDController.cpp`:
+```cpp
+// Feed-Forward ชดเชยแรงบิดทันทีตาม Target Speed + ชดเชย Deadband 35 PWM
+float feedForward = (target / MAX_ROBOT_SPEED_MPS) * (PID_MAX_PWM - MIN_START_PWM);
+if (target > 0.005f) {
+    feedForward += MIN_START_PWM;
+} else if (target < -0.005f) {
+    feedForward -= MIN_START_PWM;
+}
+```
+2. **ปรับจูนค่า PID ใน `firmware/drive_train_test/include/Config.h`:**
+   * ตั้งค่า $K_d = 0.0$ เพื่อตัดสัญญาณกระตุก
+   * ตั้งค่า $K_p = 80.0, K_i = 10.0$
+   * กำหนดเพดานความปลอดภัย `PID_MAX_PWM = 200` และ `PID_MIN_PWM = -200`
+3. **ลดความถี่ Ping Agent ใน `main.cpp`** ให้เช็คทุกๆ 5 วินาทีด้วย Timeout 10ms เพื่อไม่ให้บล็อก Loop ควบคุม
+
+---
+
+## 8. ปัญหาที่ 8: พอร์ต `/dev/ttyUSB*` สลับตำแหน่งกันเมื่อใช้ชิป CP2102 ทั้งคู่ (USB Port Mapping)
+
+### ❌ อาการ (Symptoms)
+เมื่อเสียบสาย USB หรือเปิดเครื่องใหม่ บางครั้ง LiDAR ทำงานแต่ ESP32 ไม่เชื่อมต่อ หรือ micro-ROS ต่อไปที่พอร์ตของ LiDAR ทำให้ทั้งสองระบบ Error
+
+### 🔍 สาเหตุ
+ทั้งบอร์ด ESP32 (NodeMCU/DevKit) และโมดูลแปลงสัญญาณของ YDLIDAR X4 ใช้ชิปแปลง USB-to-UART ยี่ห้อ **Silicon Labs CP2102** เหมือนกัน:
+* `idVendor=10c4, idProduct=ea60`
+* `SerialNumber=0001` เหมือนกันทั้งสองตัว
+ทำให้ Linux และ udev ไม่สามารถแยกแยะผ่าน `/dev/serial/by-id/` ได้ และกำหนดชื่อ `ttyUSB0` หรือ `ttyUSB1` ตามลำดับที่ระบบเสียบ/ตรวจพบก่อนหลัง
+
+### 💡 วิธีแก้ไข & การแยกพอร์ต
+1. **แยกตามตำแหน่งพอร์ตทางกายภาพ (Physical USB Path):**
+   ดู path ถาวรด้วยคำสั่ง:
+   ```bash
+   ls -l /dev/serial/by-path/
+   ```
+   * ตัวอย่าง: `platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.3:1.0-port0` (ช่อง USB ด้านบน/ล่างของบอร์ด Pi)
+2. **สร้าง Udev Rules ถาวร (Symlink `/dev/ttyLIDAR` และ `/dev/ttyESP32`):**
+   สร้างไฟล์ `/etc/udev/rules.d/99-medbot-serial.rules`:
+   ```bash
+   # แมปตามช่อง USB (KERNELS)
+   SUBSYSTEM=="tty", KERNELS=="1-1.1:1.0", SYMLINK+="ttyESP32", MODE="0666"
+   SUBSYSTEM=="tty", KERNELS=="1-1.3:1.0", SYMLINK+="ttyLIDAR", MODE="0666"
+   ```
+   แล้วสั่งโหลด rule ใหม่:
+   ```bash
+   sudo udevadm control --reload-rules && sudo udevadm trigger
+   ```
+
+---
+
+## 9. ปัญหาที่ 9: เปลี่ยนมาใช้แบตเตอรี่ 12V แล้วอุปกรณ์ USB หลุด/ไม่ทำงาน (`USB disconnect` & Docker Broken Pipe)
+
+### ❌ อาการ (Symptoms)
+เมื่อต่อไฟเลี้ยงจากแบตเตอรี่ 12V Li-ion (50Ah) เข้าระบบ Raspberry Pi พบว่า:
+1. ใน `dmesg` ขึ้นแจ้งเตือน:
+   ```text
+   usb 1-1.1: USB disconnect, device number ...
+   cp210x ttyUSB0: cp210x converter now disconnected
+   ```
+2. ใน Docker รัน `ros2 topic list` แล้วไม่มี `/scan` และ `/odom` ขึ้นมา
+3. สั่งรันคำสั่งบนพอร์ตเดิมแล้วขึ้น `SerialException` หรือ Broken pipe
+
+### 🔍 สาเหตุ
+1. **USB Rail Voltage Droop (ไฟ 5V VBUS ดรอปชั่วขณะ):** บอร์ดแปลง Step-down (12V $\rightarrow$ 5V) จ่ายกระแส (Amp) ไม่พอ หรือสายไฟ 5V เส้นเล็ก เมื่อ LiDAR หมุนมอเตอร์และ ESP32 ดึงกระแสพร้อมกัน รางไฟพอร์ต USB ของ Pi จะดรอปต่ำกว่า 4.7V ทำให้ชิป CP2102 ดับและรีเซ็ตตัวเอง
+2. **ไฟ 5V สองแหล่งชนกัน (Backfeeding):** หาก ESP32 มีการรับไฟ 5V มาจากบอร์ดไดรฟ์มอเตอร์ (BTS7960) หรือ Step-Down ด้วย และยังเสียบสาย USB เข้า Pi ไฟ 5V จะวิ่งย้อนเข้าพอร์ต USB จนระบบตัดไฟป้องกัน
+3. **Docker Process Broken Pipe:** เมื่อพอร์ต USB รีเซ็ตในระดับ Linux โหนดที่กำลังรันอยู่ใน Docker Container จะสูญเสีย File Descriptor เดิมไป ทำให้ไม่สามารถอ่าน/เขียนข้อมูลได้อีกแม้ USB จะต่อกลับมาแล้ว
+
+### 💡 วิธีแก้ไข
+1. **เลือกใช้ Buck Converter 12V $\rightarrow$ 5V ขนาด 5A ขึ้นไป** และใช้สายไฟเส้นใหญ่ (18-20 AWG) เพื่อป้องกัน Voltage Drop
+2. **แยกสายไฟเลี้ยงให้ถูกต้อง:**
+   * ให้ ESP32 รับไฟเลี้ยงจากสาย USB ของ Pi เพียงทางเดียว (ไม่ต้องต่อไฟ 5V ภายนอกเข้าขา VIN ซ้ำซ้อน)
+   * กราวด์ (GND) ทุกระบบ (แบตเตอรี่, ไดรฟ์มอเตอร์, ESP32, Pi) ต้องเชื่อมต่อถึงกันทั้งหมด (Single Common Ground)
+3. **สั่งรีสตาร์ท Container เมื่อมีการเสียบสาย USB ใหม่:**
+   ```bash
+   docker compose restart robot
+   ```
+   หรือ
+   ```bash
+   docker compose down && docker compose up -d robot
+   ```
+4. **ตรวจสอบสถานะอุปกรณ์หลังต่อใหม่:**
+   ```bash
+   lsusb
+   ls -l /dev/ttyUSB*
+   docker compose logs -f robot
+   ```
+

@@ -238,10 +238,10 @@ void loop() {
             // Real-time non-blocking executor spin
             rclc_executor_spin_some(&executor, RCL_MS_TO_NS(2));
 
-            // Periodic heartbeat check every 2 seconds without blocking loop
-            if (millis() - last_ping_time > 2000) {
+            // Periodic heartbeat check every 5 seconds without blocking serial comms
+            if (millis() - last_ping_time > 5000) {
                 last_ping_time = millis();
-                if (rmw_uros_ping_agent(50, 1) != RMW_RET_OK) {
+                if (rmw_uros_ping_agent(10, 1) != RMW_RET_OK) {
                     agent_state = AGENT_DISCONNECTED;
                 }
             }

@@ -1,4 +1,5 @@
 #include "PIDController.h"
+#include "Config.h"
 
 PIDController::PIDController(
     float kp,
@@ -44,16 +45,18 @@ float PIDController::compute(float target, float measured, float dt) {
     _integral = constrain(_integral, -_integralLimit, _integralLimit);
     float iTerm = _ki * _integral;
 
-    // Derivative term
+    // Derivative term (Kd=0 disables spikes from discrete encoder differentiation)
     float derivative = (error - _lastError) / dt;
     float dTerm = _kd * derivative;
     _lastError = error;
 
-    // Static friction deadband compensation (ensures both motors start simultaneously)
-    float feedForward = 0.0f;
-    if (fabs(target) > 0.01f) {
-        float minStartPWM = 40.0f;
-        feedForward = (target > 0) ? minStartPWM : -minStartPWM;
+    // Feed-Forward (Linear Speed Estimation) + Static Friction Deadband
+    // Provides immediate base torque so both motors start simultaneously without waiting for integral windup
+    float feedForward = (target / MAX_ROBOT_SPEED_MPS) * (PID_MAX_PWM - MIN_START_PWM);
+    if (target > 0.005f) {
+        feedForward += MIN_START_PWM;
+    } else if (target < -0.005f) {
+        feedForward -= MIN_START_PWM;
     }
 
     // Compute total control output

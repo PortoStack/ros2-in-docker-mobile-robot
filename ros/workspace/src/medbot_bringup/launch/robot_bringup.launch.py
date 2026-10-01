@@ -14,7 +14,7 @@ def generate_launch_description():
     # Launch Configurations & Arguments
     serial_port_arg = DeclareLaunchArgument(
         'serial_port',
-        default_value='/dev/ttyUSB1',
+        default_value='/dev/ttyUSB0',
         description='Serial port for ESP32 micro-ROS agent'
     )
     baudrate_arg = DeclareLaunchArgument(
@@ -24,7 +24,7 @@ def generate_launch_description():
     )
     lidar_port_arg = DeclareLaunchArgument(
         'lidar_port',
-        default_value='/dev/ttyUSB0',
+        default_value='/dev/ttyUSB1',
         description='Serial port for YDLidar'
     )
     use_foxglove_arg = DeclareLaunchArgument(

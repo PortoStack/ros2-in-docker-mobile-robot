@@ -79,11 +79,14 @@
 #define CMD_VEL_TIMEOUT_MS    500
 
 // ==========================================
-// Velocity PID Controller Constants (Initial Tuning)
+// Velocity Feed-Forward & PID Controller Constants
 // ==========================================
-#define PID_KP                200.0f
-#define PID_KI                25.0f
-#define PID_KD                1.5f
-#define PID_MAX_PWM           255
-#define PID_MIN_PWM          -255
-#define PID_INTEGRAL_LIMIT    100.0f
+#define MAX_ROBOT_SPEED_MPS   1.0f  // Reference max speed in m/s (~255 PWM at full power)
+#define MIN_START_PWM         35.0f // Static friction deadband compensation
+
+#define PID_KP                80.0f
+#define PID_KI                10.0f
+#define PID_KD                0.0f
+#define PID_MAX_PWM           200
+#define PID_MIN_PWM          -200
+#define PID_INTEGRAL_LIMIT    50.0f
