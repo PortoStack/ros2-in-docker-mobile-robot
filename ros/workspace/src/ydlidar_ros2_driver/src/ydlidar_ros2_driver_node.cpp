@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  YDLIDAR SYSTEM
  *  YDLIDAR ROS 2 Node
  *
@@ -218,8 +218,7 @@ int main(int argc, char *argv[]) {
       auto scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
       auto pc_msg = std::make_shared<sensor_msgs::msg::PointCloud>();
 
-      scan_msg->header.stamp.sec = RCL_NS_TO_S(scan.stamp);
-      scan_msg->header.stamp.nanosec =  scan.stamp - RCL_S_TO_NS(scan_msg->header.stamp.sec);
+      scan_msg->header.stamp = node->now();
       scan_msg->header.frame_id = frame_id;
       pc_msg->header = scan_msg->header;
       scan_msg->angle_min = scan.config.min_angle;

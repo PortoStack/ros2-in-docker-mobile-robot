@@ -95,6 +95,14 @@ def generate_launch_description():
         output='screen'
     )
 
+    # Odom to TF Broadcaster (publishes TF odom -> base_footprint from /odom)
+    odom_to_tf_node = Node(
+        package='medbot_bringup',
+        executable='odom_to_tf.py',
+        name='odom_to_tf',
+        output='screen'
+    )
+
     # Foxglove Bridge (WebSockets for Foxglove Studio UI / Visualization)
     foxglove_bridge_node = Node(
         package='foxglove_bridge',
@@ -115,6 +123,7 @@ def generate_launch_description():
         joy_node,
         teleop_twist_joy_node,
         twist_mux_node,
+        odom_to_tf_node,
         ydlidar_node,
         foxglove_bridge_node
     ])

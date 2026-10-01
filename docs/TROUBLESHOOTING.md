@@ -15,6 +15,9 @@
 7. [ปัญหาที่ 7: มอเตอร์หมุนดีเลย์ / ออกตัวไม่พร้อมกัน / มีอาการสะดุด (PID & Feed-Forward)](#7-ปัญหาที่-7-มอเตอร์หมุนดีเลย์--ออกตัวไม่พร้อมกัน--มีอาการสะดุด-pid--feed-forward)
 8. [ปัญหาที่ 8: พอร์ต `/dev/ttyUSB*` สลับตำแหน่งกันเมื่อใช้ชิป CP2102 ทั้งคู่ (USB Port Mapping)](#8-ปัญหาที่-8-พอร์ต-devttyusb-สลับตำแหน่งกันเมื่อใช้ชิป-cp2102-ทั้งคู่-usb-port-mapping)
 9. [ปัญหาที่ 9: เปลี่ยนมาใช้แบตเตอรี่ 12V แล้วอุปกรณ์ USB หลุด/ไม่ทำงาน (`USB disconnect` & Docker Broken Pipe)](#9-ปัญหาที่-9-เปลี่ยนมาใช้แบตเตอรี่-12v-แล้วอุปกรณ์-usb-หลุดไม่ทำงาน-usb-disconnect--docker-broken-pipe)
+10. [ปัญหาที่ 10: ตำแหน่ง LiDAR บน URDF ไม่ตรงกับหุ่นยนต์จริง (URDF Sensor Placement)](#10-ปัญหาที่-10-ตำแหน่ง-lidar-บน-urdf-ไม่ตรงกับหุ่นยนต์จริง-urdf-sensor-placement)
+11. [ปัญหาที่ 11: คำสั่ง `map_saver_cli` บันทึกแผนที่ล้มเหลว (`Failed to spin map subscription`)](#11-ปัญหาที่-11-คำสั่ง-map_saver_cli-บันทึกแผนที่ล้มเหลว-failed-to-spin-map-subscription)
+12. [ปัญหาที่ 12: SLAM Toolbox Drop ข้อมูลเลเซอร์ทั้งหมด (`timestamp is earlier than transform cache`)](#12-ปัญหาที่-12-slam-toolbox-drop-ข้อมูลเลเซอร์ทั้งหมด-timestamp-is-earlier-than-transform-cache)
 
 ---
 
@@ -302,4 +305,82 @@ if (target > 0.005f) {
    ls -l /dev/ttyUSB*
    docker compose logs -f robot
    ```
+
+---
+
+## 10. ปัญหาที่ 10: ตำแหน่ง LiDAR บน URDF ไม่ตรงกับหุ่นยนต์จริง (URDF Sensor Placement)
+
+### ❌ อาการ (Symptoms)
+เมื่อเปิดดูหุ่นยนต์ใน Foxglove Studio / RViz2 พบว่าโมเดล LiDAR (ทรงกระบอกสีดำ `laser_frame`) ลอยเยื้องไปข้างหน้า ไม่ได้อยู่ตรงกึ่งกลางของตัวหุ่น (`base_link`)
+
+### 🔍 สาเหตุ
+ในไฟล์ `ros/workspace/src/medbot_description/urdf/medbot.urdf.xacro` มีการตั้งค่า `laser_joint` ให้เยื้องแกน X ไปข้างหน้า `0.15` เมตร (`origin xyz="0.15 0.0 0.12"`)
+
+### 💡 วิธีแก้ไข
+ปรับตำแหน่งแกน `xyz` ใน `medbot.urdf.xacro` ให้เป็นกึ่งกลาง `0.0 0.0 0.10`:
+```xml
+  <joint name="laser_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser_frame"/>
+    <!-- Position LiDAR in the center of the robot chassis -->
+    <origin xyz="0.0 0.0 0.10" rpy="0 0 0"/>
+  </joint>
+```
+
+---
+
+## 11. ปัญหาที่ 11: คำสั่ง `map_saver_cli` บันทึกแผนที่ล้มเหลว (`Failed to spin map subscription`)
+
+### ❌ อาการ (Error)
+```text
+[INFO] [map_saver]: Saving map from 'map' topic to '/workspace/src/medbot_bringup/maps/my_map' file
+[WARN] [map_saver]: Free threshold unspecified. Setting it to default value: 0.250000
+[WARN] [map_saver]: Occupied threshold unspecified. Setting it to default value: 0.650000
+[ERROR] [map_saver]: Failed to spin map subscription
+[INFO] [map_saver]: Destroying
+[ros2run]: Process exited with failure 1
+```
+
+### 🔍 สาเหตุ
+คำสั่ง `map_saver_cli` รอรับข้อมูลจาก Topic `/map` เกิน Timeout ค่าเริ่มต้น (2 วินาที) โดยที่ `slam_toolbox` ยังไม่ได้ Publish ข้อมูลแผนที่รอบใหม่ออกมา หรือโหมด SLAM ยังไม่ได้เริ่มทำงาน
+
+### 💡 วิธีแก้ไข
+1. **บันทึกผ่าน Service ของ SLAM Toolbox โดยตรง (แนะนำที่สุด):**
+   ```bash
+   ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: '/workspace/src/medbot_bringup/maps/my_map'}}"
+   ```
+2. **หรือขยายเวลา Timeout ให้กับ `map_saver_cli` เป็น 10 วินาที:**
+   ```bash
+   ros2 run nav2_map_server map_saver_cli -f /workspace/src/medbot_bringup/maps/my_map --timeout 10000
+   ```
+
+---
+
+## 12. ปัญหาที่ 12: SLAM Toolbox Drop ข้อมูลเลเซอร์ทั้งหมด (`timestamp is earlier than transform cache`)
+
+### ❌ อาการ (Error)
+เมื่อสั่งรัน `ros2 launch medbot_bringup slam.launch.py` ตัวโหนด `sync_slam_toolbox_node` แจ้งเตือนข้อความซ้ำๆ และไม่สามารถวาดแผนที่ได้:
+```text
+[sync_slam_toolbox_node-1] [INFO] [slam_toolbox]: Message Filter dropping message: frame 'laser_frame' at time ... for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+```
+
+### 🔍 สาเหตุ
+1. **Clock Skew / Latency จาก SDK ของ LiDAR:** ไดรเวอร์ `ydlidar_ros2_driver` ใช้ค่า Timestamp ภายใน SDK (`scan.stamp`) ซึ่งมี Latency จากบัฟเฟอร์ Serial ทำให้อายุของข้อความ LaserScan ช้ากว่าเวลาใน TF Tree ของระบบ ROS 2 ปัจจุบัน (~0.5 วินาที) ตัว TF Message Filter จึงประเมินว่าเป็นข้อมูลเก่าและปฏิเสธทั้งหมด
+2. **ขาดการ Broadcast TF `odom -> base_footprint`:** บอร์ด ESP32 ส่งเฉพาะข้อความ `nav_msgs/msg/Odometry` บน Topic `/odom` แต่ยังไม่มีโหนดเชื่อมแปลงข้อมูล Odometry เข้าสู่ TF Tree
+
+### 💡 วิธีแก้ไข
+1. **แก้ไข `ydlidar_ros2_driver_node.cpp` ให้ใช้เวลา ROS ปัจจุบัน (`node->now()`):**
+   ```cpp
+   scan_msg->header.stamp = node->now();
+   scan_msg->header.frame_id = frame_id;
+   pc_msg->header = scan_msg->header;
+   ```
+2. **สร้างโหนด `odom_to_tf.py` ใน `medbot_bringup` เพื่อ Broadcast TF อัตโนมัติ:**
+   * Subscribe `/odom` แล้ว Broadcast Transform `odom -> base_footprint`
+   * เพิ่มเข้าไปใน `robot_bringup.launch.py`
+3. **ปรับเพิ่ม Timeout ใน `mapper_params_online_sync.yaml`:**
+   ```yaml
+   transform_timeout: 0.5  # ปรับเพิ่มจาก 0.2 เป็น 0.5
+   ```
+
 
