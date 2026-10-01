@@ -20,10 +20,10 @@ slam_toolbox:
     debug_logging: false
     throttle_scans: 1
     transform_publish_period: 0.02 # 50Hz
-    map_update_interval: 2.0
+    map_update_interval: 0.5       # อัปเดตแผนที่ทุกๆ 0.5 วินาที (เร็วขึ้น ลดการสะสม Error)
     resolution: 0.05
-    max_laser_range: 12.0 # matches YDLidar range
-    minimum_time_interval: 0.2
+    max_laser_range: 10.0          # matches YDLidar range
+    minimum_time_interval: 0.1
     transform_timeout: 0.5
     tf_buffer_duration: 30.0
     stack_size_to_use: 40000000
@@ -32,10 +32,10 @@ slam_toolbox:
     # General Parameters
     use_scan_matching: true
     use_scan_barycenter: true
-    minimum_travel_distance: 0.2
-    minimum_travel_heading: 0.2
-    scan_buffer_size: 10
-    scan_buffer_maximum_scan_distance: 12.0
+    minimum_travel_distance: 0.05  # ขยับแค่ 5 ซม. ก็คำนวณจับคู่ Scan ทันที
+    minimum_travel_heading: 0.05   # หมุนแค่ 0.05 rad ก็คำนวณจับคู่ Scan ทันที
+    scan_buffer_size: 20
+    scan_buffer_maximum_scan_distance: 10.0
     link_match_minimum_response_fine: 0.1
     link_scan_maximum_distance: 1.5
     loop_search_maximum_distance: 3.0

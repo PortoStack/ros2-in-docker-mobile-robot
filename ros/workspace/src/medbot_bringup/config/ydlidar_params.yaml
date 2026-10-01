@@ -19,7 +19,7 @@ ydlidar_ros2_driver_node:
     angle_max: 180.0           # -180 ถึง +180 องศา (360 องศารอบตัว)
     angle_min: -180.0
     range_max: 10.0            # 10 เมตรตามสเปก
-    range_min: 0.10            # 0.10 เมตรตามสเปก
+    range_min: 0.32            # 0.32 เมตร (ครอบคลุมเสา 4 มุมที่ระยะ 27.8 ซม. + ระยะเผื่อ ปลอดภัย 100%)
     frequency: 7.0             # 6-12 Hz แนะนำตั้งที่ 7.0
     invalid_range_is_inf: false
     debug: false

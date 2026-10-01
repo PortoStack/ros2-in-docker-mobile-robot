@@ -4,11 +4,11 @@
   <!-- Base Footprint (Ground Projection) -->
   <link name="base_footprint"/>
 
-  <!-- Base Link (Chassis Center) -->
+  <!-- Base Link (Chassis Center: Length 44cm x Width 34cm) -->
   <link name="base_link">
     <visual>
       <geometry>
-        <box size="0.45 0.35 0.15"/>
+        <box size="0.44 0.34 0.15"/>
       </geometry>
       <material name="blue">
         <color rgba="0.1 0.3 0.8 1.0"/>
@@ -16,7 +16,7 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.45 0.35 0.15"/>
+        <box size="0.44 0.34 0.15"/>
       </geometry>
     </collision>
   </link>

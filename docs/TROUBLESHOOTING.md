@@ -22,6 +22,7 @@
 14. [ปัญหาที่ 14: เดินหน้าแต่ Odometry ถอยหลังทำให้แผนที่ SLAM แตกเป็นแฉก (Inverted Odometry Sign)](#14-ปัญหาที่-14-เดินหน้าแต่-odometry-ถอยหลังทำให้แผนที่-slam-แตกเป็นแฉก-inverted-odometry-sign)
 15. [ปัญหาที่ 15: เดินหน้าตรงได้ถูกต้อง แต่เลี้ยวซ้ายแล้วในจอเลี้ยวขวา (Left/Right Encoders Swapped)](#15-ปัญหาที่-15-เดินหน้าตรงได้ถูกต้อง-แต่เลี้ยวซ้ายแล้วในจอเลี้ยวขวา-leftright-encoders-swapped)
 16. [ปัญหาที่ 16: จุด LaserScan โผล่อยู่ด้านหลังหุ่นยนต์ 180 องศา (LiDAR Yaw Offset 180°)](#16-ปัญหาที่-16-จุด-laserscan-โผล่อยู่ด้านหลังหุ่นยนต์-180-องศา-lidar-yaw-offset-180)
+17. [ปัญหาที่ 17: แผนที่ SLAM ซ้อนทับเป็นเงาหลอน (Chassis Self-Reflection & SLAM Parameter Tuning)](#17-ปัญหาที่-17-แผนที่-slam-ซ้อนทับเป็นเงาหลอน-chassis-self-reflection--slam-parameter-tuning)
 
 ---
 
@@ -481,6 +482,31 @@ if (target > 0.005f) {
   </joint>
 ```
 และสั่ง `docker compose restart robot` เพื่ออัปเดตโมเดล TF ใน ROS 2
+
+---
+
+## 17. ปัญหาที่ 17: แผนที่ SLAM ซ้อนทับเป็นเงาหลอน (Chassis Self-Reflection & SLAM Parameter Tuning)
+
+### ❌ อาการ (Symptoms)
+เมื่อทิศทางเดินหน้าและเลี้ยวถูกต้องแล้ว แต่ตอนสร้างแผนที่ใน `slam_toolbox` เส้นกำแพงเกิดเงาซ้อนทับ (Ghost Walls) แผนที่ไม่คมชัด และจุดเลเซอร์จริงไม่ทับกับเส้นแผนที่เดิม
+
+### 🔍 สาเหตุ
+1. **LiDAR ยิงโดนโครงสร้างตัวถังหุ่นยนต์ตัวเอง (Self-Reflection):** ค่า `range_min` ตั้งไว้ต่ำเกินไป (`0.10m`) ทำให้ลำแสงเลเซอร์ไปสะท้อนกับตัวถัง/เสา/น็อตของหุ่นเองที่ระยะ 15-25 ซม. เมื่อหุ่นยนต์เคลื่อนที่ จุดเหล่านี้จะเคลื่อนที่ตามหุ่นไปด้วย ทำให้ระบบ Scan Matching พยายามคำนวณจับคู่จุดบนตัวถังจนแผนที่บิดเบี้ยว
+2. **SLAM Update Rate ช้าเกินไป:** ค่า `map_update_interval: 2.0` และ `minimum_travel_distance: 0.2` ทำให้ระบบรอให้รถขยับถึง 20 ซม. หรือ 2 วินาทีถึงจะปรับปรุงแผนที่หนึ่งครั้ง เกิดการสะสม Odometry Drift ระหว่างช่วงเวลา
+
+### 💡 วิธีแก้ไข
+1. **ตัดจุดสะท้อนจากตัวถังหุ่นใน `ros/workspace/src/medbot_bringup/config/ydlidar_params.yaml`:**
+   ```yaml
+   range_min: 0.28  # กรองระยะต่ำกว่า 28 ซม. ทิ้ง เพื่อไม่ให้ตรวจจับตัวถังหุ่นยนต์
+   ```
+2. **ปรับแต่งพารามิเตอร์ Scan Matching ใน `ros/workspace/src/medbot_bringup/config/mapper_params_online_sync.yaml`:**
+   ```yaml
+   map_update_interval: 0.5       # อัปเดตแผนที่ทุก 0.5 วินาที
+   minimum_travel_distance: 0.05  # ขยับ 5 ซม. ก็อัปเดต Scan ทันที
+   minimum_travel_heading: 0.05   # หมุน 0.05 rad ก็อัปเดต Scan ทันที
+   scan_buffer_size: 20
+   ```
+
 
 
 
