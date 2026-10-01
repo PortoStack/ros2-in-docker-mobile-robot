@@ -14,8 +14,8 @@
 // ==========================================
 // Left Motor - BTS7960 Driver Pins
 // ==========================================
-#define LEFT_MOTOR_RPWM       25
-#define LEFT_MOTOR_LPWM       26
+#define LEFT_MOTOR_RPWM       26  // สลับจาก 25 เป็น 26 เพื่อกลับทิศทางการหมุน
+#define LEFT_MOTOR_LPWM       25  // สลับจาก 26 เป็น 25
 
 // ==========================================
 // Right Motor - BTS7960 Driver Pins
@@ -26,14 +26,14 @@
 // ==========================================
 // Left Encoder Pins
 // ==========================================
-#define LEFT_ENCODER_A        23
-#define LEFT_ENCODER_B        22
+#define LEFT_ENCODER_A        19  // สลับ A-B เพื่อให้เดินหน้าเป็นบวก (+)
+#define LEFT_ENCODER_B        18
 
 // ==========================================
 // Right Encoder Pins
 // ==========================================
-#define RIGHT_ENCODER_A       19
-#define RIGHT_ENCODER_B       18
+#define RIGHT_ENCODER_A       22  // สลับ A-B เพื่อให้เดินหน้าเป็นบวก (+)
+#define RIGHT_ENCODER_B       23
 
 // ==========================================
 // Motor PWM Configuration (LEDC)
@@ -59,12 +59,9 @@
 // ==========================================
 // Encoder & Drivetrain Specifications
 // ==========================================
-// JGB37-520 Motor: 11 PPR on motor shaft -> 44 CPR with 4x quadrature decoding
-// Internal Gearbox: 20:1
-// Timing Belt Reduction: 1:3 (3:1 speed reduction)
-// Total Gear Reduction = 20 * 3 = 60
-// Total Pulses per 1 Wheel Revolution = 44 * 60 = 2640 ticks
-#define TICKS_PER_REV         2640.0f
+// Calibrated from physical 1.0m travel test (measured 1.7337924m -> scale factor = 1.7337924)
+// Calibrated TICKS_PER_REV = 2640.0 * 1.7337924 = 4577.2f ticks per wheel revolution
+#define TICKS_PER_REV         4577.2f
 
 // Distance traversed per single tick (meters)
 #define METERS_PER_TICK       ((2.0f * 3.14159265358979323846f * WHEEL_RADIUS_M) / TICKS_PER_REV)

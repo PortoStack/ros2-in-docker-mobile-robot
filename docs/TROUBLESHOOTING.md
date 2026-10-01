@@ -18,6 +18,10 @@
 10. [ปัญหาที่ 10: ตำแหน่ง LiDAR บน URDF ไม่ตรงกับหุ่นยนต์จริง (URDF Sensor Placement)](#10-ปัญหาที่-10-ตำแหน่ง-lidar-บน-urdf-ไม่ตรงกับหุ่นยนต์จริง-urdf-sensor-placement)
 11. [ปัญหาที่ 11: คำสั่ง `map_saver_cli` บันทึกแผนที่ล้มเหลว (`Failed to spin map subscription`)](#11-ปัญหาที่-11-คำสั่ง-map_saver_cli-บันทึกแผนที่ล้มเหลว-failed-to-spin-map-subscription)
 12. [ปัญหาที่ 12: SLAM Toolbox Drop ข้อมูลเลเซอร์ทั้งหมด (`timestamp is earlier than transform cache`)](#12-ปัญหาที่-12-slam-toolbox-drop-ข้อมูลเลเซอร์ทั้งหมด-timestamp-is-earlier-than-transform-cache)
+13. [ปัญหาที่ 13: สั่งเดินหน้าแล้วหุ่นยนต์หมุนเลี้ยวซ้าย (Motor & Encoder Direction Inversion)](#13-ปัญหาที่-13-สั่งเดินหน้าแล้วหุ่นยนต์หมุนเลี้ยวซ้าย-motor--encoder-direction-inversion)
+14. [ปัญหาที่ 14: เดินหน้าแต่ Odometry ถอยหลังทำให้แผนที่ SLAM แตกเป็นแฉก (Inverted Odometry Sign)](#14-ปัญหาที่-14-เดินหน้าแต่-odometry-ถอยหลังทำให้แผนที่-slam-แตกเป็นแฉก-inverted-odometry-sign)
+15. [ปัญหาที่ 15: เดินหน้าตรงได้ถูกต้อง แต่เลี้ยวซ้ายแล้วในจอเลี้ยวขวา (Left/Right Encoders Swapped)](#15-ปัญหาที่-15-เดินหน้าตรงได้ถูกต้อง-แต่เลี้ยวซ้ายแล้วในจอเลี้ยวขวา-leftright-encoders-swapped)
+16. [ปัญหาที่ 16: จุด LaserScan โผล่อยู่ด้านหลังหุ่นยนต์ 180 องศา (LiDAR Yaw Offset 180°)](#16-ปัญหาที่-16-จุด-laserscan-โผล่อยู่ด้านหลังหุ่นยนต์-180-องศา-lidar-yaw-offset-180)
 
 ---
 
@@ -382,5 +386,104 @@ if (target > 0.005f) {
    ```yaml
    transform_timeout: 0.5  # ปรับเพิ่มจาก 0.2 เป็น 0.5
    ```
+
+---
+
+## 13. ปัญหาที่ 13: สั่งเดินหน้าแล้วหุ่นยนต์หมุนเลี้ยวซ้าย (Motor & Encoder Direction Inversion)
+
+### ❌ อาการ (Symptoms)
+เมื่อดันก้าน Joystick เดินหน้าตรง (`linear.x > 0, angular.z = 0`) ตัวหุ่นยนต์บนพื้นจริงหมุนเลี้ยวซ้ายรอบตัวเองแทนที่จะวิ่งตรงไปข้างหน้า
+
+### 🔍 สาเหตุ
+มอเตอร์ฝั่งซ้าย (Left Motor) ต่อสายสัญญาณ PWM หรือขั้วมอเตอร์กลับทิศ ทำให้เมื่อได้รับคำสั่งเดินหน้า มอเตอร์ขวาหมุนไปข้างหน้า แต่มอเตอร์ซ้ายหมุนถอยหลัง ส่งผลให้หุ่นหมุนควงซ้าย
+
+### 💡 วิธีแก้ไข
+สลับคู่พิน PWM และคู่พิน Encoder ของล้อซ้ายใน `firmware/drive_train_test/include/Config.h`:
+```cpp
+// Left Motor - BTS7960 Driver Pins
+#define LEFT_MOTOR_RPWM       26  // สลับจาก 25 เป็น 26
+#define LEFT_MOTOR_LPWM       25  // สลับจาก 26 เป็น 25
+
+// Left Encoder Pins
+#define LEFT_ENCODER_A        22  // สลับจาก 23 เป็น 22 เพื่อให้นับทิศทางถูกต้อง
+#define LEFT_ENCODER_B        23  // สลับจาก 22 เป็น 23
+```
+*หมายเหตุ: จำเป็นต้องสลับพิน Encoder ควบคู่ไปด้วย เพื่อให้ลูป PID Controller วัดทิศทางการหมุนของล้อซ้ายได้ถูกต้อง*
+
+---
+
+## 14. ปัญหาที่ 14: เดินหน้าแต่ Odometry ถอยหลังทำให้แผนที่ SLAM แตกเป็นแฉก (Inverted Odometry Sign)
+
+### ❌ อาการ (Symptoms)
+เมื่อเดินหุ่นยนต์ตรงไปในทางเดิน แผนที่ใน Foxglove Studio วาดกำแพงซ้อนทับกันเป็นแฉกๆ (Starburst / Fan pattern) และตัวหุ่นยนต์บนหน้าจอแสดงผลเคลื่อนที่ถอยหลังทั้งที่หุ่นยนต์จริงเดินหน้า
+
+### 🔍 สาเหตุ
+ทิศทางการนับของ Encoder (A/B State Transitions) นับค่าลดลง (ติดลบ) เมื่อล้อหมุนเดินหน้า ทำให้ `deltaTicks < 0` $\rightarrow$ ข้อมูล `/odom` ส่งค่า $\Delta x < 0$ (ถอยหลัง) ขัดแย้งกับข้อมูลระยะทางที่ลดลงจริงจาก LiDAR ระบบ SLAM Toolbox จึงประเมินการเคลื่อนที่ผิดพลาดอย่างรุนแรงและหมุนสลับระนาบแผนที่ไปมา
+
+### 💡 วิธีแก้ไข
+1. **สลับพิน Encoder ทั้งสองข้างใน `firmware/drive_train_test/include/Config.h`:**
+   ```cpp
+   // Left Encoder Pins
+   #define LEFT_ENCODER_A        23  // สลับเพื่อให้นับบวกเมื่อเดินหน้า
+   #define LEFT_ENCODER_B        22
+
+   // Right Encoder Pins
+   #define RIGHT_ENCODER_A       18  // สลับเพื่อให้นับบวกเมื่อเดินหน้า
+   #define RIGHT_ENCODER_B       19
+   ```
+2. **ตรวจสอบระยะ Track Width และจุดกึ่งกลางของล้อ:**
+   * `TRACK_WIDTH_M` = `0.30f` (300 mm)
+   * จุดยึด `base_link` และ `laser_frame` ใน `medbot.urdf.xacro` อยู่ที่กึ่งกลาง `(X=0.0, Y=0.0)`
+3. **Flash ESP32 ใหม่** แล้วทดสอบเข็นตรง 1 เมตร ค่า `x` ใน `/odom` ต้องเพิ่มขึ้นเป็นบวก
+
+---
+
+## 15. ปัญหาที่ 15: เดินหน้าตรงได้ถูกต้อง แต่เลี้ยวซ้ายแล้วในจอเลี้ยวขวา (Left/Right Encoders Swapped)
+
+### ❌ อาการ (Symptoms)
+เมื่อขับหุ่นยนต์เดินหน้าตรง ค่าพิกัด `x` ใน `/odom` เพิ่มขึ้นเป็นบวกถูกต้อง แต่เมื่อเลี้ยวซ้าย (ทวนเข็มนาฬิกา) ค่า `twist.twist.angular.z` ติดลบ (`-`) และโมเดลหุ่นยนต์ใน Foxglove กลับหมุนเลี้ยวขวา
+
+### 🔍 สาเหตุ
+สายสัญญาณ Encoder ล้อซ้ายและล้อขวาสลับข้างกันในระดับพิน GPIO:
+* เมื่อหมุนเลี้ยวซ้าย: ล้อขวาหมุนไปข้างหน้า (+), ล้อซ้ายหมุนถอยหลัง (-)
+* แต่เนื่องจากพินสลับข้างกัน: ซอฟต์แวร์เข้าใจว่าล้อซ้ายหมุนหน้า และล้อขวาหมุนหลัง ทำให้คำนวณ $\Delta\theta = (Right - Left) / W$ ได้ค่าติดลบ (เลี้ยวขวา)
+
+### 💡 วิธีแก้ไข
+สลับคู่พินของ Left Encoder และ Right Encoder ใน `firmware/drive_train_test/include/Config.h`:
+```cpp
+// Left Encoder Pins
+#define LEFT_ENCODER_A        18  // สลับคู่ล้อซ้าย-ขวา เพื่อให้หมุนซ้ายเป็นบวก (+)
+#define LEFT_ENCODER_B        19
+
+// Right Encoder Pins
+#define RIGHT_ENCODER_A       23  // สลับคู่ล้อซ้าย-ขวา เพื่อให้หมุนซ้ายเป็นบวก (+)
+#define RIGHT_ENCODER_B       22
+```
+
+---
+
+## 16. ปัญหาที่ 16: จุด LaserScan โผล่อยู่ด้านหลังหุ่นยนต์ 180 องศา (LiDAR Yaw Offset 180°)
+
+### ❌ อาการ (Symptoms)
+เมื่อดูในหน้าต่าง 3D ของ Foxglove Studio พบว่าจุดเลเซอร์และกำแพงห้องที่อยู่ด้านหน้าหุ่นยนต์จริง ไปปรากฏอยู่ด้านหลังกล่องหุ่นยนต์สีน้ำเงิน (กลับทิศ 180 องศา)
+
+### 🔍 สาเหตุ
+ตำแหน่งการติดตั้งตัว LiDAR หรือมุมอ้างอิงศูนย์องศา (Zero Index) ของไดรเวอร์ YDLIDAR หมุนกลับหลัง 180 องศาเทียบกับพิกัด `base_link` ของตัวรถ
+
+### 💡 วิธีแก้ไข
+หมุนระนาบ `laser_joint` ใน `ros/workspace/src/medbot_description/urdf/medbot.urdf.xacro` ตามแกน Z ไป 180 องศา (`pi = 3.1415926` เรเดียน):
+```xml
+  <joint name="laser_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser_frame"/>
+    <!-- Rotate 180 deg (pi) to align 0-deg scan with robot front -->
+    <origin xyz="0.0 0.0 0.10" rpy="0 0 3.1415926"/>
+  </joint>
+```
+และสั่ง `docker compose restart robot` เพื่ออัปเดตโมเดล TF ใน ROS 2
+
+
+
+
 
 
